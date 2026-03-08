@@ -793,8 +793,8 @@
 <rect x="816" y="96" width="13" height="13" rx="2" fill="#21262d"/>
 <rect x="817" y="97" width="11" height="11" rx="1.5" fill="#161b22"/>
 <rect x="832" y="0" width="13" height="13" rx="2" fill="#21262d"/>
-<rect x="833" y="1" width="11" height="11" rx="1.5" fill="#006d32">
-        <animate attributeName="fill" values="#006d32;#21262d" keyTimes="0;0.7565" dur="46.320s" repeatCount="indefinite" calcMode="discrete"/>
+<rect x="833" y="1" width="11" height="11" rx="1.5" fill="#39d353">
+        <animate attributeName="fill" values="#39d353;#21262d" keyTimes="0;0.7565" dur="46.320s" repeatCount="indefinite" calcMode="discrete"/>
       </rect>
 <rect x="832" y="16" width="13" height="13" rx="2" fill="#21262d"/>
 <rect x="833" y="17" width="11" height="11" rx="1.5" fill="#161b22"/>
