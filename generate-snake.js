@@ -14,7 +14,7 @@ const SNAKE_LEN = 5;
 const COLORS = {
   empty: '#161b22', border: '#21262d',
   levels: ['#161b22','#0e4429','#006d32','#26a641','#39d353'],
-  head: '#f85196', tongue: '#ef233c', eye: '#0d1117'
+  head: '#f85196', tongue: '#ef233c', eye: '#fff0f5'
 };
 
 function fetchContributions(user) {
