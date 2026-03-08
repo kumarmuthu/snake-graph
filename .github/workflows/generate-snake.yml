@@ -2,7 +2,7 @@ name: Generate Snake SVG
 
 on:
   schedule:
-    - cron: "0 0 * * *" # daily at midnight UTC
+    - cron: "30 18 * * *"   # 12:00 AM IST (UTC+5:30)
   workflow_dispatch:
   push:
     branches: [main]
