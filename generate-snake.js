@@ -14,7 +14,7 @@ const SNAKE_LEN = 5;
 const COLORS = {
   empty: '#161b22', border: '#21262d',
   levels: ['#161b22','#0e4429','#006d32','#26a641','#39d353'],
-  head: '#4caf50', tongue: '#ef233c', eye: '#0d1117'
+  head: '#f85196', tongue: '#ef233c', eye: '#0d1117'
 };
 
 function fetchContributions(user) {
@@ -133,8 +133,8 @@ async function main() {
   for (let seg=1; seg<=SNAKE_LEN; seg++) {
     const bx = path.map((_,i) => path[Math.max(0,i-seg)][0]*STEP+1).join(';');
     const by = path.map((_,i) => path[Math.max(0,i-seg)][1]*STEP+1).join(';');
-    const g  = Math.round(98 - (seg/SNAKE_LEN)*50);
-    svg.push(`<rect width="${CELL-2}" height="${CELL-2}" rx="1.5" fill="rgb(20,${g},20)">
+    const g  = Math.round(130 - (seg/SNAKE_LEN)*80);
+    svg.push(`<rect width="${CELL-2}" height="${CELL-2}" rx="1.5" fill="rgb(220,${g},${g})">
       <animate attributeName="x" values="${bx}" keyTimes="${keyTimes}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
       <animate attributeName="y" values="${by}" keyTimes="${keyTimes}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
     </rect>`);
