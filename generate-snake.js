@@ -118,7 +118,7 @@ async function main() {
   }
 
   let svg = [];
-  svg.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`);
+  svg.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="overflow:hidden">`);
   svg.push(`<defs><clipPath id="board"><rect width="${W}" height="${H}"/></clipPath></defs>`);
   svg.push(`<rect width="${W}" height="${H}" fill="${COLORS.empty}"/>`);
   svg.push(`<g clip-path="url(#board)">`);
