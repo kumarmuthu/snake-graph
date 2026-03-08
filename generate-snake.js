@@ -120,7 +120,7 @@ async function main() {
   }
 
   let svg = [];
-  svg.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`);
+  svg.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" overflow="hidden">`);
   svg.push(`<rect width="${W}" height="${H}" fill="${COLORS.empty}"/>`);
 
   // Grid cells
@@ -151,14 +151,15 @@ async function main() {
     const bx = path.map((_,i) => path[Math.max(0,i-seg)][0]*STEP+1).join(';');
     const by = path.map((_,i) => path[Math.max(0,i-seg)][1]*STEP+1).join(';');
     const g  = Math.round(SNAKE_COLORS.bodyHead[1] - (seg/SNAKE_LEN)*(SNAKE_COLORS.bodyHead[1]-SNAKE_COLORS.bodyTail[1]));
-    svg.push(`<rect width="${CELL-2}" height="${CELL-2}" rx="1.5" fill="rgb(${SNAKE_COLORS.bodyHead[0]},${g},${g})">
+    svg.push(`<rect width="${CELL-2}" height="${CELL-2}" rx="1.5" fill="rgb(${SNAKE_COLORS.bodyHead[0]},${g},${g})" visibility="hidden">
+      <animate attributeName="visibility" values="hidden;visible" keyTimes="0;${(seg/path.length*frameDur/parseFloat(totalDur)).toFixed(4)}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
       <animate attributeName="x" values="${bx}" keyTimes="${keyTimes}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
       <animate attributeName="y" values="${by}" keyTimes="${keyTimes}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
     </rect>`);
   }
 
   // Head
-  svg.push(`<rect width="${CELL}" height="${CELL}" rx="2" fill="${COLORS.head}">
+  svg.push(`<rect width="${CELL}" height="${CELL}" rx="2" fill="${COLORS.head}" x="${path[0][0]*STEP}" y="${path[0][1]*STEP}">
     <animate attributeName="x" values="${hx}" keyTimes="${keyTimes}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
     <animate attributeName="y" values="${hy}" keyTimes="${keyTimes}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
   </rect>`);
@@ -166,7 +167,7 @@ async function main() {
   // Eye
   const ex = path.map(([c])=> c*STEP+CELL/2+4).join(';');
   const ey = path.map(([,r])=> r*STEP+CELL/2-2).join(';');
-  svg.push(`<circle r="1.5" fill="${COLORS.eye}">
+  svg.push(`<circle r="1.5" fill="${COLORS.eye}" cx="${path[0][0]*STEP+CELL/2+4}" cy="${path[0][1]*STEP+CELL/2-2}">
     <animate attributeName="cx" values="${ex}" keyTimes="${keyTimes}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
     <animate attributeName="cy" values="${ey}" keyTimes="${keyTimes}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
   </circle>`);
