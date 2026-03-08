@@ -127,40 +127,41 @@
     <div class="status" id="status"></div>
 </div>
 
+<script src="colors.js"></script>
 <script>
     const COLS = 53, ROWS = 7, CELL = 13, GAP = 3, STEP = CELL + GAP;
     const canvas = document.getElementById('grid');
     const ctx    = canvas.getContext('2d');
     canvas.width  = COLS * STEP - GAP;
     canvas.height = ROWS * STEP - GAP;
-    
+
     const COLORS = {
         empty:'#161b22', border:'#21262d',
         l0:'#0e4429', l1:'#006d32', l2:'#26a641', l3:'#39d353',
-        eye:'#0d1117', tongue:'#ef233c',
+        eye:'#fff0f5', tongue:'#ef233c',
     };
     const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    
+
     let grid = [], path = [];
     let headIdx=0, tailIdx=0, eaten=0, frameTimer=0, lastTime=null, done=false, animId=null;
     let eatenSet = new Set();
     const SNAKE_LEN=5, FRAME_MS=120;
-    
-    // --- Read username from URL param ?user=xxx ─
+
+    // --- Read username from URL param ?user=xxx ---
     function getUsernameFromURL() {
         const params = new URLSearchParams(window.location.search);
         return params.get('user') || params.get('username') || '';
     }
-    
-    // --- Update URL param without page reload ---─
+
+    // --- Update URL param without page reload ---
     function setURLParam(username) {
         const url = new URL(window.location.href);
         if (username) url.searchParams.set('user', username);
         else          url.searchParams.delete('user');
         window.history.replaceState({}, '', url);
     }
-    
-    // --- Grid 
+
+    // --- Grid ---
     function emptyGrid() {
         grid = [];
         for (let c=0;c<COLS;c++){grid[c]=[];for(let r=0;r<ROWS;r++)grid[c][r]=0;}
@@ -169,7 +170,7 @@
         function rl(){const r=Math.random();if(r<0.28)return 0;if(r<0.5)return 1;if(r<0.72)return 2;if(r<0.88)return 3;return 4;}
         for(let c=0;c<COLS;c++)for(let r=0;r<ROWS;r++){const w=(r===0||r===6);grid[c][r]=w&&Math.random()<0.5?Math.max(0,rl()-1):rl();}
     }
-    
+
     // --- Fetch ---
     async function fetchContributions(username) {
         const res = await fetch(`https://github-contributions-api.jogruber.de/v4/${username}?y=last`);
@@ -177,7 +178,7 @@
         const data = await res.json();
         return data.contributions;
     }
-    
+
     function fillGridFromData(contributions) {
         emptyGrid();
         const months = {};
@@ -196,7 +197,7 @@
         });
         return months;
     }
-    
+
     function renderMonthLabels(months) {
         const row = document.getElementById('monthRow');
         row.innerHTML = '';
@@ -211,10 +212,10 @@
         const years = [...new Set(Object.values(months).map(m => m.year))];
         document.getElementById('yearTag').textContent = years.join(' – ');
     }
-    
-    // --- Path 
+
+    // --- Path ---
     function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
-    
+
     function buildPath() {
         const total=COLS*ROWS, vis=new Uint8Array(total), result=[];
         const DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
@@ -231,8 +232,8 @@
         }
         return result;
     }
-    
-    // --- Draw 
+
+    // --- Draw ---
     function cellColor(l){return[COLORS.empty,COLORS.l0,COLORS.l1,COLORS.l2,COLORS.l3][l]||COLORS.empty;}
     function drawCell(c,r,fill,stroke){
         const x=c*STEP,y=r*STEP;
@@ -240,7 +241,7 @@
         ctx.fillStyle=fill;ctx.beginPath();ctx.roundRect(x+1,y+1,CELL-2,CELL-2,1.5);ctx.fill();
     }
     function drawHead(hc,hr,dir){
-        drawCell(hc,hr,'#4caf50','#2e7d32');
+        drawCell(hc,hr,SNAKE_COLORS.head,SNAKE_COLORS.headBorder);
         const x=hc*STEP+CELL/2,y=hr*STEP+CELL/2;
         const eo={right:[5,-3],left:[-5,-3],up:[-3,-5],down:[-3,5]}[dir];
         ctx.fillStyle=COLORS.eye;ctx.beginPath();ctx.arc(x+eo[0],y+eo[1],1.5,0,Math.PI*2);ctx.fill();
@@ -262,7 +263,7 @@
         const slen=Math.min(SNAKE_LEN,headIdx-tailIdx);
         for(let i=tailIdx;i<headIdx&&i<path.length;i++){
             const[c,r]=path[i];const t=(i-tailIdx)/Math.max(slen,1);
-            drawCell(c,r,`rgb(20,${Math.round(90+t*60)},20)`,'#145214');
+            drawCell(c,r,`rgb(${SNAKE_COLORS.bodyHead[0]},${Math.round(SNAKE_COLORS.bodyTail[1]+t*(SNAKE_COLORS.bodyHead[1]-SNAKE_COLORS.bodyTail[1]))},${Math.round(SNAKE_COLORS.bodyTail[1]+t*(SNAKE_COLORS.bodyHead[1]-SNAKE_COLORS.bodyTail[1]))})`,'#880e4f');
         }
         if(headIdx<path.length){
             const[hc,hr]=path[headIdx];let dir='right';
@@ -270,7 +271,7 @@
             drawHead(hc,hr,dir);
         }
     }
-    
+
     // --- Animate ---
     function step(){
         if(done)return;
@@ -298,26 +299,26 @@
         document.getElementById('score').textContent='🐍 eating contributions...';
         animId=requestAnimationFrame(loop);
     }
-    
+
     // --- Load user ---
     async function loadUser() {
         const input    = document.getElementById('usernameInput');
         const username = input.value.trim();
         if (!username) return;
-    
+
         const btn    = document.getElementById('loadBtn');
         const status = document.getElementById('status');
         btn.disabled = true; btn.textContent = 'Loading...';
         status.className = 'status';
         status.textContent = `Fetching @${username}'s contributions...`;
         document.getElementById('userLabel').textContent = `${username} — contributions`;
-    
+
         // Update URL so this link is shareable
         setURLParam(username);
-    
+
         if (animId) cancelAnimationFrame(animId);
         emptyGrid(); draw();
-    
+
         try {
             const contributions = await fetchContributions(username);
             const months = fillGridFromData(contributions);
@@ -332,16 +333,16 @@
             renderMonthLabels({});
             startAnim();
         }
-    
+
         btn.disabled = false; btn.textContent = 'Load';
     }
-    
+
     // --- Enter key ---
     document.getElementById('usernameInput').addEventListener('keydown', e => {
         if (e.key === 'Enter') loadUser();
     });
-    
-    // --- On page load: check URL param first, fallback to kumarmuthu 
+
+    // --- On page load: check URL param first, fallback to kumarmuthu ---
     window.addEventListener('DOMContentLoaded', () => {
         const fromURL = getUsernameFromURL();
         const username = fromURL || 'kumarmuthu';
