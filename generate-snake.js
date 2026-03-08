@@ -120,6 +120,86 @@ async function main() {
   }
 
   let svg = [];
+  svg.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`);
+  svg.push(`<defs><clipPath id="board"><rect width="${W}" height="${H}"/></clipPath></defs>`);
+  svg.push(`<rect width="${W}" height="${H}" fill="${COLORS.empty}"/>`);
+  svg.push(`<g clip-path="url(#board)">`);
+
+  // Grid cells
+  for (let c=0;c<COLS;c++) for (let r=0;r<ROWS;r++) {
+    const key = `${c},${r}`;
+    const lvl = grid[c][r];
+    const fill = COLORS.levels[lvl] || COLORS.empty;
+    const x=c*STEP, y=r*STEP;
+    svg.push(`<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="2" fill="${COLORS.border}"/>`);
+
+    if (eatenAt[key] !== undefined) {
+      const eatTime = (eatenAt[key] * frameDur / parseFloat(totalDur)).toFixed(4);
+      svg.push(`<rect x="${x+1}" y="${y+1}" width="${CELL-2}" height="${CELL-2}" rx="1.5" fill="${fill}">
+        <animate attributeName="fill" values="${fill};${COLORS.border}" keyTimes="0;${eatTime}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
+      </rect>`);
+    } else {
+      svg.push(`<rect x="${x+1}" y="${y+1}" width="${CELL-2}" height="${CELL-2}" rx="1.5" fill="${fill}"/>`);
+    }
+  }
+
+  // Head + body keyTimes
+  const keyTimes = path.map((_,i) => (i * frameDur / totalDur).toFixed(4)).join(';');
+  const hx = path.map(([c])=> c*STEP).join(';');
+  const hy = path.map(([,r])=> r*STEP).join(';');
+
+  // Body segments — stay off-screen for first `seg` frames
+  for (let seg=1; seg<=SNAKE_LEN; seg++) {
+    // Build x/y values: off-screen for first `seg` steps, then follow path
+    const bxArr = path.map((_,i) => i < seg ? -20 : path[i-seg][0]*STEP+1);
+    const byArr = path.map((_,i) => i < seg ? -20 : path[i-seg][1]*STEP+1);
+    const bx = bxArr.join(';');
+    const by = byArr.join(';');
+    const g  = Math.round(SNAKE_COLORS.bodyHead[1] - (seg/SNAKE_LEN)*(SNAKE_COLORS.bodyHead[1]-SNAKE_COLORS.bodyTail[1]));
+    svg.push(`<rect width="${CELL-2}" height="${CELL-2}" rx="1.5" fill="rgb(${SNAKE_COLORS.bodyHead[0]},${g},${g})" x="-20" y="-20">
+      <animate attributeName="x" values="${bx}" keyTimes="${keyTimes}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
+      <animate attributeName="y" values="${by}" keyTimes="${keyTimes}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
+    </rect>`);
+  }
+
+  // Head
+  svg.push(`<rect width="${CELL}" height="${CELL}" rx="2" fill="${COLORS.head}" x="${path[0][0]*STEP}" y="${path[0][1]*STEP}">
+    <animate attributeName="x" values="${hx}" keyTimes="${keyTimes}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
+    <animate attributeName="y" values="${hy}" keyTimes="${keyTimes}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
+  </rect>`);
+
+  // Eye
+  const ex = path.map(([c])=> c*STEP+CELL/2+4).join(';');
+  const ey = path.map(([,r])=> r*STEP+CELL/2-2).join(';');
+  svg.push(`<circle r="1.5" fill="${COLORS.eye}" cx="${path[0][0]*STEP+CELL/2+4}" cy="${path[0][1]*STEP+CELL/2-2}">
+    <animate attributeName="cx" values="${ex}" keyTimes="${keyTimes}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
+    <animate attributeName="cy" values="${ey}" keyTimes="${keyTimes}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
+  </circle>`);
+
+  svg.push(`</g>`);
+  svg.push(`</svg>`);
+
+  const out = svg.join('\n');
+  fs.writeFileSync('snake-dark.svg', out);
+  console.log(`✅ snake-dark.svg generated (${(out.length/1024).toFixed(1)} KB)`);
+}
+
+main().catch(console.error);  }
+
+  const path = buildPath();
+  const frameDur = 0.12;
+  const totalFrames = path.length + SNAKE_LEN + 10;
+  const totalDur = (totalFrames * frameDur).toFixed(3);
+
+  // Which frame each cell gets eaten
+  const eatenAt = {};
+  for (let i=0; i<path.length; i++) {
+    const [c,r] = path[i];
+    const key = `${c},${r}`;
+    if (eatenAt[key] === undefined && grid[c][r] > 0) eatenAt[key] = i;
+  }
+
+  let svg = [];
   svg.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" overflow="hidden">`);
   svg.push(`<rect width="${W}" height="${H}" fill="${COLORS.empty}"/>`);
 
