@@ -11,7 +11,20 @@ const W = COLS * STEP - GAP;
 const H = ROWS * STEP - GAP;
 const SNAKE_LEN = 5;
 
-const SNAKE_COLORS = require('./colors.js');
+// ── Edit colors here ──────────────────────────────────────────────
+const SNAKE_COLORS = {
+  empty:       '#161b22',
+  border:      '#21262d',
+  levels:      ['#161b22','#0e4429','#006d32','#26a641','#39d353'],
+  head:        '#4caf50',
+  headBorder:  '#2e7d32',
+  bodyHead:    [20, 150],
+  bodyTail:    [20, 90],
+  bodyBorder:  '#145214',
+  eye:         '#0d1117',
+  tongue:      '#ef233c',
+};
+// ──────────────────────────────────────────────────────────────────
 const COLORS = {
   empty:  SNAKE_COLORS.empty,
   border: SNAKE_COLORS.border,
