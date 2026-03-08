@@ -184,7 +184,7 @@ async function main() {
   console.log(`✅ snake-dark.svg generated (${(out.length/1024).toFixed(1)} KB)`);
 }
 
-main().catch(console.error);  }
+main().catch(console.error);
 
   const path = buildPath();
   const frameDur = 0.12;
