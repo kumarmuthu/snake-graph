@@ -115,10 +115,9 @@ async function main() {
     svg.push(`<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="2" fill="${COLORS.border}"/>`);
 
     if (eatenAt[key] !== undefined) {
-      const eatTime  = (eatenAt[key] * frameDur / totalDur).toFixed(4);
-      const eatTime2 = Math.min(parseFloat(eatTime) + 0.002, 1).toFixed(4);
+      const eatTime = (eatenAt[key] * frameDur / parseFloat(totalDur)).toFixed(4);
       svg.push(`<rect x="${x+1}" y="${y+1}" width="${CELL-2}" height="${CELL-2}" rx="1.5" fill="${fill}">
-        <animate attributeName="fill" values="${fill};${fill};${COLORS.border}" keyTimes="0;${eatTime};${eatTime2}" dur="${totalDur}s" repeatCount="indefinite"/>
+        <animate attributeName="fill" values="${fill};${COLORS.border}" keyTimes="0;${eatTime}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
       </rect>`);
     } else {
       svg.push(`<rect x="${x+1}" y="${y+1}" width="${CELL-2}" height="${CELL-2}" rx="1.5" fill="${fill}"/>`);
