@@ -151,8 +151,7 @@ async function main() {
     const bx = path.map((_,i) => path[Math.max(0,i-seg)][0]*STEP+1).join(';');
     const by = path.map((_,i) => path[Math.max(0,i-seg)][1]*STEP+1).join(';');
     const g  = Math.round(SNAKE_COLORS.bodyHead[1] - (seg/SNAKE_LEN)*(SNAKE_COLORS.bodyHead[1]-SNAKE_COLORS.bodyTail[1]));
-    svg.push(`<rect width="${CELL-2}" height="${CELL-2}" rx="1.5" fill="rgb(${SNAKE_COLORS.bodyHead[0]},${g},${g})" visibility="hidden">
-      <animate attributeName="visibility" values="hidden;visible" keyTimes="0;${(seg/path.length*frameDur/parseFloat(totalDur)).toFixed(4)}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
+    svg.push(`<rect width="${CELL-2}" height="${CELL-2}" rx="1.5" fill="rgb(${SNAKE_COLORS.bodyHead[0]},${g},${g})" x="-20" y="-20">
       <animate attributeName="x" values="${bx}" keyTimes="${keyTimes}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
       <animate attributeName="y" values="${by}" keyTimes="${keyTimes}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
     </rect>`);
