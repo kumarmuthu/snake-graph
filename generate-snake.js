@@ -11,18 +11,17 @@ const W = COLS * STEP - GAP;
 const H = ROWS * STEP - GAP;
 const SNAKE_LEN = 5;
 
-// ── Edit colors here ──────────────────────────────────────────────
+// ── Edit snake colors here ─────────────────────────────────────────
 const SNAKE_COLORS = {
-  empty:       '#161b22',
-  border:      '#21262d',
-  levels:      ['#161b22','#0e4429','#006d32','#26a641','#39d353'],
-  head:        '#4caf50',
-  headBorder:  '#2e7d32',
-  bodyHead:    [20, 150],
-  bodyTail:    [20, 90],
-  bodyBorder:  '#145214',
-  eye:         '#0d1117',
-  tongue:      '#ef233c',
+  empty:      '#161b22',
+  border:     '#21262d',
+  levels:     ['#161b22','#0e4429','#006d32','#26a641','#39d353'],
+  head:       '#4caf50',
+  headBorder: '#2e7d32',
+  bodyHead:   [20, 150],
+  bodyTail:   [20, 90],
+  eye:        '#0d1117',
+  tongue:     '#ef233c',
 };
 // ──────────────────────────────────────────────────────────────────
 const COLORS = {
@@ -111,7 +110,6 @@ async function main() {
   const totalFrames = path.length + SNAKE_LEN + 10;
   const totalDur = (totalFrames * frameDur).toFixed(3);
 
-  // Which frame each cell gets eaten
   const eatenAt = {};
   for (let i=0; i<path.length; i++) {
     const [c,r] = path[i];
@@ -125,14 +123,12 @@ async function main() {
   svg.push(`<rect width="${W}" height="${H}" fill="${COLORS.empty}"/>`);
   svg.push(`<g clip-path="url(#board)">`);
 
-  // Grid cells
   for (let c=0;c<COLS;c++) for (let r=0;r<ROWS;r++) {
     const key = `${c},${r}`;
     const lvl = grid[c][r];
     const fill = COLORS.levels[lvl] || COLORS.empty;
     const x=c*STEP, y=r*STEP;
     svg.push(`<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="2" fill="${COLORS.border}"/>`);
-
     if (eatenAt[key] !== undefined) {
       const eatTime = (eatenAt[key] * frameDur / parseFloat(totalDur)).toFixed(4);
       svg.push(`<rect x="${x+1}" y="${y+1}" width="${CELL-2}" height="${CELL-2}" rx="1.5" fill="${fill}">
@@ -143,18 +139,14 @@ async function main() {
     }
   }
 
-  // Head + body keyTimes
   const keyTimes = path.map((_,i) => (i * frameDur / totalDur).toFixed(4)).join(';');
   const hx = path.map(([c])=> c*STEP).join(';');
   const hy = path.map(([,r])=> r*STEP).join(';');
 
-  // Body segments — stay off-screen for first `seg` frames
+  // Body: start off-screen at -20,-20 for first `seg` frames, clipped by clipPath
   for (let seg=1; seg<=SNAKE_LEN; seg++) {
-    // Build x/y values: off-screen for first `seg` steps, then follow path
-    const bxArr = path.map((_,i) => i < seg ? -20 : path[i-seg][0]*STEP+1);
-    const byArr = path.map((_,i) => i < seg ? -20 : path[i-seg][1]*STEP+1);
-    const bx = bxArr.join(';');
-    const by = byArr.join(';');
+    const bx = path.map((_,i) => i < seg ? -20 : path[i-seg][0]*STEP+1).join(';');
+    const by = path.map((_,i) => i < seg ? -20 : path[i-seg][1]*STEP+1).join(';');
     const g  = Math.round(SNAKE_COLORS.bodyHead[1] - (seg/SNAKE_LEN)*(SNAKE_COLORS.bodyHead[1]-SNAKE_COLORS.bodyTail[1]));
     svg.push(`<rect width="${CELL-2}" height="${CELL-2}" rx="1.5" fill="rgb(${SNAKE_COLORS.bodyHead[0]},${g},${g})" x="-20" y="-20">
       <animate attributeName="x" values="${bx}" keyTimes="${keyTimes}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
@@ -162,13 +154,13 @@ async function main() {
     </rect>`);
   }
 
-  // Head
+  // Head starts at path[0]
   svg.push(`<rect width="${CELL}" height="${CELL}" rx="2" fill="${COLORS.head}" x="${path[0][0]*STEP}" y="${path[0][1]*STEP}">
     <animate attributeName="x" values="${hx}" keyTimes="${keyTimes}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
     <animate attributeName="y" values="${hy}" keyTimes="${keyTimes}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
   </rect>`);
 
-  // Eye
+  // Eye starts at path[0]
   const ex = path.map(([c])=> c*STEP+CELL/2+4).join(';');
   const ey = path.map(([,r])=> r*STEP+CELL/2-2).join(';');
   svg.push(`<circle r="1.5" fill="${COLORS.eye}" cx="${path[0][0]*STEP+CELL/2+4}" cy="${path[0][1]*STEP+CELL/2-2}">
