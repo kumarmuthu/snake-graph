@@ -100,6 +100,7 @@ snake-graph/
 ├── generate-snake.js           ← Node.js SVG generator
 ├── snake-dark.svg              ← auto-generated animated SVG
 ├── index.html                  ← interactive HTML + Canvas app
+├── LICENSE                     ← MIT License
 └── README.md                   ← this file
 ```
 
