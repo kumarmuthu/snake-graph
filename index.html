@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Snake Contribution Graph</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0d1117;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .wrapper {
+            padding: 28px 32px 24px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 14px;
+            box-shadow: 0 0 40px rgba(35,134,54,0.12), 0 0 80px rgba(35,134,54,0.06);
+            max-width: 98vw;
+        }
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .gh-icon { width: 22px; height: 22px; fill: #8b949e; flex-shrink: 0; }
+        .input-row input {
+            flex: 1;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #e6edf3;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            padding: 6px 10px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .input-row input:focus { border-color: #3fb950; }
+        .input-row input::placeholder { color: #484f58; }
+        .btn {
+            background: #238636;
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            cursor: pointer;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 7px 14px;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+        .btn:hover  { background: #2ea043; }
+        .btn:active { background: #1a7f37; }
+        .btn:disabled { background: #21262d; color: #484f58; cursor: default; }
+        .top-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+        .label { color: #8b949e; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
+        .year-tag { color: #484f58; font-size: 10px; }
+        .month-row {
+            position: relative;
+            height: 14px;
+            margin-bottom: 3px;
+        }
+        .month-lbl { color: #8b949e; font-size: 9px; position: absolute; top: 0; }
+        canvas { display: block; image-rendering: pixelated; }
+        .bottom-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+        .legend { display: flex; align-items: center; gap: 4px; }
+        .legend-box { width: 11px; height: 11px; border-radius: 2px; }
+        .legend-label { color: #484f58; font-size: 9px; margin: 0 4px; }
+        .score { color: #3fb950; font-size: 11px; letter-spacing: 0.06em; }
+        .status { color: #8b949e; font-size: 10px; margin-top: 6px; min-height: 14px; text-align: center; }
+        .status.err { color: #f85149; }
+        .glow { filter: drop-shadow(0 0 5px rgba(63,185,80,0.5)); }
+    </style>
+</head>
+<body>
+<div class="wrapper">
+    <div class="input-row">
+        <svg class="gh-icon" viewBox="0 0 16 16">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38
+            0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13
+            -.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66
+            .07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15
+            -.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27
+            .68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12
+            .51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48
+            0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+        </svg>
+        <input id="usernameInput" type="text" placeholder="Enter GitHub username..."/>
+        <button class="btn" id="loadBtn" onclick="loadUser()">Load</button>
+    </div>
+    <div class="top-meta">
+        <div class="label" id="userLabel">contributions</div>
+        <div class="year-tag" id="yearTag"></div>
+    </div>
+    <div class="month-row" id="monthRow"></div>
+    <canvas id="grid" class="glow"></canvas>
+    <div class="bottom-row">
+        <div class="legend">
+            <span class="legend-label">Less</span>
+            <div class="legend-box" style="background:#0e4429"></div>
+            <div class="legend-box" style="background:#006d32"></div>
+            <div class="legend-box" style="background:#26a641"></div>
+            <div class="legend-box" style="background:#39d353"></div>
+            <span class="legend-label">More</span>
+        </div>
+        <div class="score" id="score">🐍 loading...</div>
+    </div>
+    <div class="status" id="status"></div>
+</div>
+
+<script>
+    const COLS = 53, ROWS = 7, CELL = 13, GAP = 3, STEP = CELL + GAP;
+    const canvas = document.getElementById('grid');
+    const ctx    = canvas.getContext('2d');
+    canvas.width  = COLS * STEP - GAP;
+    canvas.height = ROWS * STEP - GAP;
+    
+    const COLORS = {
+        empty:'#161b22', border:'#21262d',
+        l0:'#0e4429', l1:'#006d32', l2:'#26a641', l3:'#39d353',
+        eye:'#0d1117', tongue:'#ef233c',
+    };
+    const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    
+    let grid = [], path = [];
+    let headIdx=0, tailIdx=0, eaten=0, frameTimer=0, lastTime=null, done=false, animId=null;
+    let eatenSet = new Set();
+    const SNAKE_LEN=5, FRAME_MS=120;
+    
+    // --- Read username from URL param ?user=xxx ─
+    function getUsernameFromURL() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('user') || params.get('username') || '';
+    }
+    
+    // --- Update URL param without page reload ---─
+    function setURLParam(username) {
+        const url = new URL(window.location.href);
+        if (username) url.searchParams.set('user', username);
+        else          url.searchParams.delete('user');
+        window.history.replaceState({}, '', url);
+    }
+    
+    // --- Grid 
+    function emptyGrid() {
+        grid = [];
+        for (let c=0;c<COLS;c++){grid[c]=[];for(let r=0;r<ROWS;r++)grid[c][r]=0;}
+    }
+    function fakeGrid() {
+        function rl(){const r=Math.random();if(r<0.28)return 0;if(r<0.5)return 1;if(r<0.72)return 2;if(r<0.88)return 3;return 4;}
+        for(let c=0;c<COLS;c++)for(let r=0;r<ROWS;r++){const w=(r===0||r===6);grid[c][r]=w&&Math.random()<0.5?Math.max(0,rl()-1):rl();}
+    }
+    
+    // --- Fetch ---
+    async function fetchContributions(username) {
+        const res = await fetch(`https://github-contributions-api.jogruber.de/v4/${username}?y=last`);
+        if (!res.ok) throw new Error(`User "@${username}" not found`);
+        const data = await res.json();
+        return data.contributions;
+    }
+    
+    function fillGridFromData(contributions) {
+        emptyGrid();
+        const months = {};
+        const total  = contributions.length;
+        const slice  = contributions.slice(Math.max(0, total - COLS * ROWS));
+        const firstDow = new Date(slice[0].date).getDay();
+        slice.forEach((entry, idx) => {
+            const col = Math.floor((idx + firstDow) / ROWS);
+            const row = (idx + firstDow) % ROWS;
+            if (col < COLS && row < ROWS) {
+                grid[col][row] = entry.level;
+                const d = new Date(entry.date);
+                const key = `${d.getFullYear()}-${d.getMonth()}`;
+                if (!months[key]) months[key] = { col, month: d.getMonth(), year: d.getFullYear() };
+            }
+        });
+        return months;
+    }
+    
+    function renderMonthLabels(months) {
+        const row = document.getElementById('monthRow');
+        row.innerHTML = '';
+        row.style.width = canvas.width + 'px';
+        Object.values(months).forEach(({ col, month }) => {
+            const lbl = document.createElement('span');
+            lbl.className = 'month-lbl';
+            lbl.textContent = MONTH_NAMES[month];
+            lbl.style.left = (col * STEP) + 'px';
+            row.appendChild(lbl);
+        });
+        const years = [...new Set(Object.values(months).map(m => m.year))];
+        document.getElementById('yearTag').textContent = years.join(' – ');
+    }
+    
+    // --- Path 
+    function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+    
+    function buildPath() {
+        const total=COLS*ROWS, vis=new Uint8Array(total), result=[];
+        const DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
+        let c=Math.floor(Math.random()*COLS), r=Math.floor(Math.random()*ROWS);
+        while(result.length<total){
+            vis[c*ROWS+r]=1; result.push([c,r]);
+            const dirs=shuffle([...DIRS]); let moved=false;
+            for(const[dc,dr]of dirs){const nc=c+dc,nr=r+dr;if(nc>=0&&nc<COLS&&nr>=0&&nr<ROWS&&!vis[nc*ROWS+nr]){c=nc;r=nr;moved=true;break;}}
+            if(!moved){
+                const q=[[c,r]],seen=new Uint8Array(total);seen[c*ROWS+r]=1;let found=false;
+                while(q.length){const[qc,qr]=q.shift();for(const[dc,dr]of DIRS){const nc=qc+dc,nr2=qr+dr;if(nc>=0&&nc<COLS&&nr2>=0&&nr2<ROWS){const k=nc*ROWS+nr2;if(!seen[k]){seen[k]=1;if(!vis[k]){c=nc;r=nr2;found=true;break;}q.push([nc,nr2]);}}};if(found)break;}
+                if(!found)break;
+            }
+        }
+        return result;
+    }
+    
+    // --- Draw 
+    function cellColor(l){return[COLORS.empty,COLORS.l0,COLORS.l1,COLORS.l2,COLORS.l3][l]||COLORS.empty;}
+    function drawCell(c,r,fill,stroke){
+        const x=c*STEP,y=r*STEP;
+        ctx.fillStyle=stroke||COLORS.border;ctx.beginPath();ctx.roundRect(x,y,CELL,CELL,2);ctx.fill();
+        ctx.fillStyle=fill;ctx.beginPath();ctx.roundRect(x+1,y+1,CELL-2,CELL-2,1.5);ctx.fill();
+    }
+    function drawHead(hc,hr,dir){
+        drawCell(hc,hr,'#4caf50','#2e7d32');
+        const x=hc*STEP+CELL/2,y=hr*STEP+CELL/2;
+        const eo={right:[5,-3],left:[-5,-3],up:[-3,-5],down:[-3,5]}[dir];
+        ctx.fillStyle=COLORS.eye;ctx.beginPath();ctx.arc(x+eo[0],y+eo[1],1.5,0,Math.PI*2);ctx.fill();
+        const reach={right:[8,0],left:[-8,0],up:[0,-8],down:[0,8]}[dir];
+        const perp={right:[0,3],left:[0,3],up:[3,0],down:[3,0]}[dir];
+        ctx.strokeStyle=COLORS.tongue;ctx.lineWidth=1.2;ctx.lineCap='round';
+        const mx=x+reach[0]*0.55,my=y+reach[1]*0.55;
+        ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(mx,my);
+        ctx.moveTo(mx,my);ctx.lineTo(x+reach[0]+perp[0],y+reach[1]+perp[1]);
+        ctx.moveTo(mx,my);ctx.lineTo(x+reach[0]-perp[0],y+reach[1]-perp[1]);ctx.stroke();
+    }
+    function draw(){
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        for(let c=0;c<COLS;c++)for(let r=0;r<ROWS;r++){
+            const k=`${c},${r}`;
+            if(eatenSet.has(k))drawCell(c,r,COLORS.border,COLORS.border);
+            else drawCell(c,r,cellColor(grid[c][r]));
+        }
+        const slen=Math.min(SNAKE_LEN,headIdx-tailIdx);
+        for(let i=tailIdx;i<headIdx&&i<path.length;i++){
+            const[c,r]=path[i];const t=(i-tailIdx)/Math.max(slen,1);
+            drawCell(c,r,`rgb(20,${Math.round(90+t*60)},20)`,'#145214');
+        }
+        if(headIdx<path.length){
+            const[hc,hr]=path[headIdx];let dir='right';
+            if(headIdx>0){const[pc,pr]=path[headIdx-1];if(hc>pc)dir='right';else if(hc<pc)dir='left';else if(hr>pr)dir='down';else dir='up';}
+            drawHead(hc,hr,dir);
+        }
+    }
+    
+    // --- Animate ---
+    function step(){
+        if(done)return;
+        if(headIdx<path.length){const[c,r]=path[headIdx];const k=`${c},${r}`;if(!eatenSet.has(k)&&grid[c][r]>0){eaten++;eatenSet.add(k);}headIdx++;}
+        if(headIdx-tailIdx>SNAKE_LEN)tailIdx++;
+        if(headIdx>=path.length+SNAKE_LEN){
+            done=true;
+            document.getElementById('score').textContent=`🐍 ${eaten} contributions eaten!`;
+            setTimeout(startAnim,2200);
+        } else {
+            document.getElementById('score').textContent=`🐍 ${eaten} contributions eaten...`;
+        }
+    }
+    function loop(ts){
+        if(!lastTime)lastTime=ts;
+        frameTimer+=ts-lastTime;lastTime=ts;
+        if(frameTimer>=FRAME_MS){frameTimer-=FRAME_MS;step();}
+        draw();
+        if(!done)animId=requestAnimationFrame(loop);
+    }
+    function startAnim(){
+        if(animId)cancelAnimationFrame(animId);
+        headIdx=0;tailIdx=0;eaten=0;done=false;eatenSet.clear();lastTime=null;frameTimer=0;
+        path=buildPath();
+        document.getElementById('score').textContent='🐍 eating contributions...';
+        animId=requestAnimationFrame(loop);
+    }
+    
+    // --- Load user ---
+    async function loadUser() {
+        const input    = document.getElementById('usernameInput');
+        const username = input.value.trim();
+        if (!username) return;
+    
+        const btn    = document.getElementById('loadBtn');
+        const status = document.getElementById('status');
+        btn.disabled = true; btn.textContent = 'Loading...';
+        status.className = 'status';
+        status.textContent = `Fetching @${username}'s contributions...`;
+        document.getElementById('userLabel').textContent = `${username} — contributions`;
+    
+        // Update URL so this link is shareable
+        setURLParam(username);
+    
+        if (animId) cancelAnimationFrame(animId);
+        emptyGrid(); draw();
+    
+        try {
+            const contributions = await fetchContributions(username);
+            const months = fillGridFromData(contributions);
+            renderMonthLabels(months);
+            const total = contributions.reduce((s,d)=>s+d.count,0);
+            status.textContent = `✓ ${total.toLocaleString()} total contributions loaded`;
+            startAnim();
+        } catch (err) {
+            status.className = 'status err';
+            status.textContent = `✗ ${err.message} — showing demo data`;
+            emptyGrid(); fakeGrid();
+            renderMonthLabels({});
+            startAnim();
+        }
+    
+        btn.disabled = false; btn.textContent = 'Load';
+    }
+    
+    // --- Enter key ---
+    document.getElementById('usernameInput').addEventListener('keydown', e => {
+        if (e.key === 'Enter') loadUser();
+    });
+    
+    // --- On page load: check URL param first, fallback to kumarmuthu 
+    window.addEventListener('DOMContentLoaded', () => {
+        const fromURL = getUsernameFromURL();
+        const username = fromURL || 'kumarmuthu';
+        document.getElementById('usernameInput').value = username;
+        loadUser();
+    });
+</script>
+</body>
+</html>
