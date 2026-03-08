@@ -29,6 +29,8 @@
 
 Type any GitHub username → press **Load** → watch the snake eat your contributions.
 
+<img src="https://raw.githubusercontent.com/kumarmuthu/snake-graph/main/snake-dark.svg" alt="snake contribution graph">
+
 ---
 
 ## 🛠️ Use It Yourself
@@ -50,22 +52,17 @@ git clone https://github.com/kumarmuthu/snake-graph.git
 
 ### Option C — Embed in your GitHub Profile README
 
-Add a clickable link to your `README.md`:
+Add this to your profile `README.md`:
 
 ```html
 <!-- Snake Contribution Graph -->
 <div>
-    <h1 align="left"><strong>🐍 Snake Eating My Contributions</strong></h1>
-    <a href="https://kumarmuthu.github.io/snake-graph/?user=YOUR_USERNAME" target="_blank">
-        <img src="https://raw.githubusercontent.com/kumarmuthu/snake-graph/main/preview.png"
-             alt="Snake Contribution Graph" width="800"/>
-    </a>
-    <br/>
-    <sub>🐍 <a href="https://kumarmuthu.github.io/snake-graph/">Try it with your username →</a></sub>
+  <h1 align="left"><strong>Snake Eating My Contribution Graph</strong></h1>
+  <img src="https://raw.githubusercontent.com/kumarmuthu/snake-graph/main/snake-dark.svg" alt="snake gif">
 </div>
 ```
 
-> Replace `YOUR_USERNAME` with your GitHub username for a direct link.
+> The SVG is auto-updated daily at 12:00 AM IST via GitHub Actions.
 
 ---
 
@@ -97,9 +94,13 @@ Falls back to randomised demo data if the username is not found.
 
 ```
 snake-graph/
-├── index.html      ← entire app (single file, no dependencies)
-├── preview.png     ← screenshot for README embed
-└── README.md       ← this file
+├── .github/
+│   └── workflows/
+│       └── generate-snake.yml  ← daily Action to regenerate SVG
+├── generate-snake.js           ← Node.js SVG generator
+├── snake-dark.svg              ← auto-generated animated SVG
+├── index.html                  ← interactive HTML + Canvas app
+└── README.md                   ← this file
 ```
 
 ---
