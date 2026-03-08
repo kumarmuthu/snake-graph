@@ -14,7 +14,7 @@ const SNAKE_LEN = 5;
 const COLORS = {
   empty: '#161b22', border: '#21262d',
   levels: ['#161b22','#0e4429','#006d32','#26a641','#39d353'],
-  head: '#4caf50', body0: '#286228', body1: '#3a8c3a', tongue: '#ef233c', eye: '#0d1117'
+  head: '#4caf50', tongue: '#ef233c', eye: '#0d1117'
 };
 
 function fetchContributions(user) {
@@ -44,7 +44,6 @@ function buildGrid(contributions) {
   return grid;
 }
 
-// Greedy random walk path (seeded-style, deterministic shuffle via sin)
 function buildPath() {
   let seed = 42;
   function rand() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
@@ -61,18 +60,21 @@ function buildPath() {
     for(const[dc,dr]of dirs){const nc=c+dc,nr=r+dr;if(nc>=0&&nc<COLS&&nr>=0&&nr<ROWS&&!vis[nc*ROWS+nr]){c=nc;r=nr;moved=true;break;}}
     if(!moved){
       const q=[[c,r]],seen=new Uint8Array(total);seen[c*ROWS+r]=1;let found=false;
-      while(q.length){const[qc,qr]=q.shift();for(const[dc,dr]of DIRS){const nc=qc+dc,nr2=qr+dr;if(nc>=0&&nc<COLS&&nr2>=0&&nr2<ROWS){const k=nc*ROWS+nr2;if(!seen[k]){seen[k]=1;if(!vis[k]){c=nc;r=nr2;found=true;break;}q.push([nc,nr2]);}}}if(found)break;}
+      while(q.length){
+        const[qc,qr]=q.shift();
+        for(const[dc,dr]of DIRS){
+          const nc=qc+dc,nr2=qr+dr;
+          if(nc>=0&&nc<COLS&&nr2>=0&&nr2<ROWS){
+            const k=nc*ROWS+nr2;
+            if(!seen[k]){seen[k]=1;if(!vis[k]){c=nc;r=nr2;found=true;break;}q.push([nc,nr2]);}
+          }
+        }
+        if(found)break;
+      }
       if(!found)break;
     }
   }
   return result;
-}
-
-function getDir(hc,hr,pc,pr){if(hc>pc)return'R';if(hc<pc)return'L';if(hr>pr)return'D';return'U';}
-
-function cellRect(c, r, fill, rx=2) {
-  const x=c*STEP, y=r*STEP;
-  return `<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="${rx}" fill="${fill}"/>`;
 }
 
 async function main() {
@@ -84,99 +86,80 @@ async function main() {
     console.log('Contributions loaded.');
   } catch(e) {
     console.warn('API failed, using fake grid:', e.message);
-    grid = Array.from({length:COLS},(_,c)=>Array.from({length:ROWS},(_,r)=>Math.floor(Math.random()*5)));
+    grid = Array.from({length:COLS},()=>Array.from({length:ROWS},()=>Math.floor(Math.random()*5)));
   }
 
   const path = buildPath();
+  const frameDur = 0.12;
   const totalFrames = path.length + SNAKE_LEN + 10;
-  const frameDur = 0.12; // seconds per frame
-  const totalDur = totalFrames * frameDur;
+  const totalDur = (totalFrames * frameDur).toFixed(3);
 
-  // Pre-compute which frame each cell gets eaten
-  const eatenAt = {}; // "c,r" -> frame index
-  for (let i = 0; i < path.length; i++) {
+  // Which frame each cell gets eaten
+  const eatenAt = {};
+  for (let i=0; i<path.length; i++) {
     const [c,r] = path[i];
     const key = `${c},${r}`;
-    if (!eatenAt[key] && grid[c][r] > 0) eatenAt[key] = i;
+    if (eatenAt[key] === undefined && grid[c][r] > 0) eatenAt[key] = i;
   }
 
-  // Build SVG
-  let svgParts = [];
-  svgParts.push(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`);
-  svgParts.push(`<style>
-    .cell { }
-  </style>`);
+  let svg = [];
+  svg.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`);
+  svg.push(`<rect width="${W}" height="${H}" fill="${COLORS.empty}"/>`);
 
-  // Background
-  svgParts.push(`<rect width="${W}" height="${H}" fill="${COLORS.empty}"/>`);
-
-  // Draw static grid cells with animate for eating
+  // Grid cells
   for (let c=0;c<COLS;c++) for (let r=0;r<ROWS;r++) {
     const key = `${c},${r}`;
     const lvl = grid[c][r];
-    const fillNormal = COLORS.levels[lvl];
+    const fill = COLORS.levels[lvl] || COLORS.empty;
     const x=c*STEP, y=r*STEP;
+    svg.push(`<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="2" fill="${COLORS.border}"/>`);
 
     if (eatenAt[key] !== undefined) {
-      const eatFrame = eatenAt[key];
-      const eatTime  = (eatFrame * frameDur).toFixed(3);
-      // border rect
-      svgParts.push(`<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="2" fill="${COLORS.border}"/>`);
-      // inner rect that disappears when eaten
-      svgParts.push(`<rect x="${x+1}" y="${y+1}" width="${CELL-2}" height="${CELL-2}" rx="1.5" fill="${fillNormal}">
-        <animate attributeName="fill" values="${fillNormal};${fillNormal};${COLORS.border}" keyTimes="0;${(eatTime/totalDur).toFixed(4)};${Math.min((parseFloat(eatTime)/totalDur+0.001),1).toFixed(4)}" dur="${totalDur}s" repeatCount="indefinite"/>
+      const eatTime  = (eatenAt[key] * frameDur / totalDur).toFixed(4);
+      const eatTime2 = Math.min(parseFloat(eatTime) + 0.002, 1).toFixed(4);
+      svg.push(`<rect x="${x+1}" y="${y+1}" width="${CELL-2}" height="${CELL-2}" rx="1.5" fill="${fill}">
+        <animate attributeName="fill" values="${fill};${fill};${COLORS.border}" keyTimes="0;${eatTime};${eatTime2}" dur="${totalDur}s" repeatCount="indefinite"/>
       </rect>`);
     } else {
-      svgParts.push(`<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="2" fill="${COLORS.border}"/>`);
-      svgParts.push(`<rect x="${x+1}" y="${y+1}" width="${CELL-2}" height="${CELL-2}" rx="1.5" fill="${fillNormal}"/>`);
+      svg.push(`<rect x="${x+1}" y="${y+1}" width="${CELL-2}" height="${CELL-2}" rx="1.5" fill="${fill}"/>`);
     }
   }
 
-  // Snake: animate head position
-  // Build keyTimes and x/y values for head
-  const headXvals = [], headYvals = [], keyTimes = [];
-  for (let i=0; i<=path.length; i++) {
-    const idx = Math.min(i, path.length-1);
-    const [c,r] = path[idx];
-    headXvals.push(c*STEP);
-    headYvals.push(r*STEP);
-    keyTimes.push((i*frameDur/totalDur).toFixed(4));
-  }
-
-  // Head rect animation
-  svgParts.push(`<rect id="head" width="${CELL}" height="${CELL}" rx="2" fill="${COLORS.head}">
-    <animate attributeName="x" values="${headXvals.join(';')}" keyTimes="${keyTimes.join(';')}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
-    <animate attributeName="y" values="${headYvals.join(';')}" keyTimes="${keyTimes.join(';')}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
-  </rect>`);
-
-  // Eye (small circle on head)
-  svgParts.push(`<circle r="1.5" fill="${COLORS.eye}">
-    <animate attributeName="cx" values="${headXvals.map(x=>x+CELL/2+4).join(';')}" keyTimes="${keyTimes.join(';')}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
-    <animate attributeName="cy" values="${headYvals.map(y=>y+CELL/2-2).join(';')}" keyTimes="${keyTimes.join(';')}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
-  </circle>`);
+  // Head + body keyTimes
+  const keyTimes = path.map((_,i) => (i * frameDur / totalDur).toFixed(4)).join(';');
+  const hx = path.map(([c])=> c*STEP).join(';');
+  const hy = path.map(([,r])=> r*STEP).join(';');
 
   // Body segments
   for (let seg=1; seg<=SNAKE_LEN; seg++) {
-    const bx=[], by=[], bt=[];
-    for (let i=0; i<=path.length; i++) {
-      const idx = Math.max(0, Math.min(i-seg, path.length-1));
-      const [c,r] = path[idx];
-      bx.push(c*STEP+1); by.push(r*STEP+1);
-      bt.push((i*frameDur/totalDur).toFixed(4));
-    }
-    const t = seg/SNAKE_LEN;
-    const g = Math.round(98 - t*50);
-    svgParts.push(`<rect width="${CELL-2}" height="${CELL-2}" rx="1.5" fill="rgb(20,${g},20)" opacity="${i<seg?0:1}">
-      <animate attributeName="x" values="${bx.join(';')}" keyTimes="${bt.join(';')}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
-      <animate attributeName="y" values="${by.join(';')}" keyTimes="${bt.join(';')}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
+    const bx = path.map((_,i) => path[Math.max(0,i-seg)][0]*STEP+1).join(';');
+    const by = path.map((_,i) => path[Math.max(0,i-seg)][1]*STEP+1).join(';');
+    const g  = Math.round(98 - (seg/SNAKE_LEN)*50);
+    svg.push(`<rect width="${CELL-2}" height="${CELL-2}" rx="1.5" fill="rgb(20,${g},20)">
+      <animate attributeName="x" values="${bx}" keyTimes="${keyTimes}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
+      <animate attributeName="y" values="${by}" keyTimes="${keyTimes}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
     </rect>`);
   }
 
-  svgParts.push(`</svg>`);
+  // Head
+  svg.push(`<rect width="${CELL}" height="${CELL}" rx="2" fill="${COLORS.head}">
+    <animate attributeName="x" values="${hx}" keyTimes="${keyTimes}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
+    <animate attributeName="y" values="${hy}" keyTimes="${keyTimes}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
+  </rect>`);
 
-  const svgContent = svgParts.join('\n');
-  fs.writeFileSync('snake-dark.svg', svgContent);
-  console.log(`✅ snake-dark.svg generated (${(svgContent.length/1024).toFixed(1)} KB)`);
+  // Eye
+  const ex = path.map(([c])=> c*STEP+CELL/2+4).join(';');
+  const ey = path.map(([,r])=> r*STEP+CELL/2-2).join(';');
+  svg.push(`<circle r="1.5" fill="${COLORS.eye}">
+    <animate attributeName="cx" values="${ex}" keyTimes="${keyTimes}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
+    <animate attributeName="cy" values="${ey}" keyTimes="${keyTimes}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
+  </circle>`);
+
+  svg.push(`</svg>`);
+
+  const out = svg.join('\n');
+  fs.writeFileSync('snake-dark.svg', out);
+  console.log(`✅ snake-dark.svg generated (${(out.length/1024).toFixed(1)} KB)`);
 }
 
 main().catch(console.error);
