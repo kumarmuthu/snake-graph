@@ -229,8 +229,8 @@
         <animate attributeName="fill" values="#0e4429;#21262d" keyTimes="0;0.1477" dur="46.320s" repeatCount="indefinite" calcMode="discrete"/>
       </rect>
 <rect x="224" y="96" width="13" height="13" rx="2" fill="#21262d"/>
-<rect x="225" y="97" width="11" height="11" rx="1.5" fill="#26a641">
-        <animate attributeName="fill" values="#26a641;#21262d" keyTimes="0;0.1451" dur="46.320s" repeatCount="indefinite" calcMode="discrete"/>
+<rect x="225" y="97" width="11" height="11" rx="1.5" fill="#006d32">
+        <animate attributeName="fill" values="#006d32;#21262d" keyTimes="0;0.1451" dur="46.320s" repeatCount="indefinite" calcMode="discrete"/>
       </rect>
 <rect x="240" y="0" width="13" height="13" rx="2" fill="#21262d"/>
 <rect x="241" y="1" width="11" height="11" rx="1.5" fill="#161b22"/>
@@ -363,8 +363,8 @@
 <rect x="368" y="64" width="13" height="13" rx="2" fill="#21262d"/>
 <rect x="369" y="65" width="11" height="11" rx="1.5" fill="#161b22"/>
 <rect x="368" y="80" width="13" height="13" rx="2" fill="#21262d"/>
-<rect x="369" y="81" width="11" height="11" rx="1.5" fill="#26a641">
-        <animate attributeName="fill" values="#26a641;#21262d" keyTimes="0;0.4456" dur="46.320s" repeatCount="indefinite" calcMode="discrete"/>
+<rect x="369" y="81" width="11" height="11" rx="1.5" fill="#006d32">
+        <animate attributeName="fill" values="#006d32;#21262d" keyTimes="0;0.4456" dur="46.320s" repeatCount="indefinite" calcMode="discrete"/>
       </rect>
 <rect x="368" y="96" width="13" height="13" rx="2" fill="#21262d"/>
 <rect x="369" y="97" width="11" height="11" rx="1.5" fill="#161b22"/>
@@ -649,8 +649,8 @@
 <rect x="672" y="80" width="13" height="13" rx="2" fill="#21262d"/>
 <rect x="673" y="81" width="11" height="11" rx="1.5" fill="#161b22"/>
 <rect x="672" y="96" width="13" height="13" rx="2" fill="#21262d"/>
-<rect x="673" y="97" width="11" height="11" rx="1.5" fill="#39d353">
-        <animate attributeName="fill" values="#39d353;#21262d" keyTimes="0;0.8212" dur="46.320s" repeatCount="indefinite" calcMode="discrete"/>
+<rect x="673" y="97" width="11" height="11" rx="1.5" fill="#26a641">
+        <animate attributeName="fill" values="#26a641;#21262d" keyTimes="0;0.8212" dur="46.320s" repeatCount="indefinite" calcMode="discrete"/>
       </rect>
 <rect x="688" y="0" width="13" height="13" rx="2" fill="#21262d"/>
 <rect x="689" y="1" width="11" height="11" rx="1.5" fill="#161b22"/>
