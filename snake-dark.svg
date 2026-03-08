@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="845" height="109" viewBox="0 0 845 109">
+<svg xmlns="http://www.w3.org/2000/svg" width="845" height="109" viewBox="0 0 845 109" style="overflow:hidden">
 <defs><clipPath id="board"><rect width="845" height="109"/></clipPath></defs>
 <rect width="845" height="109" fill="#161b22"/>
 <g clip-path="url(#board)">
