@@ -1,6 +1,7 @@
 // generate-snake.js
 // Run: node generate-snake.js <username>
 // Outputs: snake-dark.svg
+// Requires: GITHUB_TOKEN env variable
 
 const https = require('https');
 const fs    = require('fs');
@@ -33,32 +34,94 @@ const COLORS = {
   eye:    SNAKE_COLORS.eye,
 };
 
+// GitHub official GraphQL API ─────────────────────────
+// Maps GitHub's contributionLevel string → numeric level 0–4
+const LEVEL_MAP = {
+  NONE:             0,
+  FIRST_QUARTILE:   1,
+  SECOND_QUARTILE:  2,
+  THIRD_QUARTILE:   3,
+  FOURTH_QUARTILE:  4,
+};
+
 function fetchContributions(user) {
+  const token = process.env.GITHUB_TOKEN;
+  if (!token) {
+    throw new Error('GITHUB_TOKEN env variable is required. Add it to your workflow env: block.');
+  }
+
+  const query = JSON.stringify({
+    query: `{
+      user(login: "${user}") {
+        contributionsCollection {
+          contributionCalendar {
+            totalContributions
+            weeks {
+              contributionDays {
+                contributionLevel
+                contributionCount
+                date
+              }
+            }
+          }
+        }
+      }
+    }`
+  });
+
   return new Promise((resolve, reject) => {
-    const url = `https://github-contributions-api.jogruber.de/v4/${user}?y=last`;
-    https.get(url, res => {
+    const options = {
+      hostname: 'api.github.com',
+      path:     '/graphql',
+      method:   'POST',
+      headers: {
+        'Authorization': `bearer ${token}`,
+        'Content-Type':  'application/json',
+        'Content-Length': Buffer.byteLength(query),
+        'User-Agent':    'snake-graph-generator',
+      },
+    };
+
+    const req = https.request(options, res => {
       let data = '';
       res.on('data', d => data += d);
       res.on('end', () => {
-        try { resolve(JSON.parse(data).contributions); }
-        catch(e) { reject(e); }
+        try {
+          const json = JSON.parse(data);
+          if (json.errors) { reject(new Error(JSON.stringify(json.errors))); return; }
+          const cal = json.data.user.contributionsCollection.contributionCalendar;
+          console.log(`✅ Total contributions from GitHub: ${cal.totalContributions}`);
+          resolve(cal.weeks);
+        } catch(e) { reject(e); }
       });
-    }).on('error', reject);
+    });
+    req.on('error', reject);
+    req.write(query);
+    req.end();
   });
 }
 
-function buildGrid(contributions) {
-  const grid = Array.from({length: COLS}, () => new Array(ROWS).fill(0));
-  const total = contributions.length;
-  const slice = contributions.slice(Math.max(0, total - COLS * ROWS));
-  const firstDow = new Date(slice[0].date).getDay();
-  slice.forEach((entry, idx) => {
-    const col = Math.floor((idx + firstDow) / ROWS);
-    const row = (idx + firstDow) % ROWS;
-    if (col < COLS && row < ROWS) grid[col][row] = entry.level;
+// Grid built directly from GitHub's week/day structure ────
+// GitHub already gives data as up to 53 weeks × up to 7 days.
+// No manual offset math needed — each day carries its own date/DOW.
+function buildGrid(weeks) {
+  // Fill a clean COLS×ROWS grid with zeros
+  const grid = Array.from({ length: COLS }, () => new Array(ROWS).fill(0));
+
+  // Use the last COLS weeks (GitHub may return slightly more than 53)
+  const slicedWeeks = weeks.slice(-COLS);
+
+  slicedWeeks.forEach((week, colIdx) => {
+    week.contributionDays.forEach(day => {
+      // GitHub weeks always start Sunday; getDay() returns 0=Sun…6=Sat
+      const row = new Date(day.date).getDay();
+      grid[colIdx][row] = LEVEL_MAP[day.contributionLevel] ?? 0;
+    });
   });
+
   return grid;
 }
+// ──────────────────────────────────────────────────────────────────
 
 function buildPath() {
   let seed = 42;
@@ -94,15 +157,16 @@ function buildPath() {
 }
 
 async function main() {
-  console.log(`Fetching contributions for ${username}...`);
+  console.log(`Fetching contributions for ${username} via GitHub GraphQL API...`);
   let grid;
   try {
-    const contributions = await fetchContributions(username);
-    grid = buildGrid(contributions);
-    console.log('Contributions loaded.');
+    const weeks = await fetchContributions(username);
+    grid = buildGrid(weeks);
+    console.log('✅ Grid built from official GitHub data.');
   } catch(e) {
-    console.warn('API failed, using fake grid:', e.message);
-    grid = Array.from({length:COLS},()=>Array.from({length:ROWS},()=>Math.floor(Math.random()*5)));
+    // Hard fail — never silently fall back to random data
+    console.error('❌ Failed to fetch contributions:', e.message);
+    process.exit(1);
   }
 
   const path = buildPath();
@@ -143,7 +207,6 @@ async function main() {
   const hx = path.map(([c])=> c*STEP).join(';');
   const hy = path.map(([,r])=> r*STEP).join(';');
 
-  // Body: start off-screen at -20,-20 for first `seg` frames, clipped by clipPath
   for (let seg=1; seg<=SNAKE_LEN; seg++) {
     const bx = path.map((_,i) => i < seg ? -20 : path[i-seg][0]*STEP+1).join(';');
     const by = path.map((_,i) => i < seg ? -20 : path[i-seg][1]*STEP+1).join(';');
@@ -154,13 +217,11 @@ async function main() {
     </rect>`);
   }
 
-  // Head starts at path[0]
   svg.push(`<rect width="${CELL}" height="${CELL}" rx="2" fill="${COLORS.head}" x="${path[0][0]*STEP}" y="${path[0][1]*STEP}">
     <animate attributeName="x" values="${hx}" keyTimes="${keyTimes}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
     <animate attributeName="y" values="${hy}" keyTimes="${keyTimes}" dur="${totalDur}s" repeatCount="indefinite" calcMode="discrete"/>
   </rect>`);
 
-  // Eye starts at path[0]
   const ex = path.map(([c])=> c*STEP+CELL/2+4).join(';');
   const ey = path.map(([,r])=> r*STEP+CELL/2-2).join(';');
   svg.push(`<circle r="1.5" fill="${COLORS.eye}" cx="${path[0][0]*STEP+CELL/2+4}" cy="${path[0][1]*STEP+CELL/2-2}">
