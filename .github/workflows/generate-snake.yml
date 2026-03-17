@@ -26,6 +26,8 @@ jobs:
 
       - name: Generate snake SVG
         run: node generate-snake.js kumarmuthu
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # token to GraphQL API
 
       - name: Commit and push SVG
         run: |
