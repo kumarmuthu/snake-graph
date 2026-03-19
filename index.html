@@ -214,7 +214,8 @@
         const cutoff = new Date(now);
         cutoff.setFullYear(cutoff.getFullYear() - 1);
         const cutoffStr = cutoff.toISOString().split('T')[0];
-        const filtered = deduped.filter(d => d.date >= cutoffStr);
+        const todayStr  = now.toISOString().split('T')[0];   // ← cap at today, drop future months
+        const filtered = deduped.filter(d => d.date >= cutoffStr && d.date <= todayStr);
 
         if (filtered.length === 0) throw new Error(`No contributions found for "@${username}"`);
         return filtered;
