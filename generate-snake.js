@@ -1,6 +1,6 @@
 // generate-snake.js
 // Run: node generate-snake.js <username>
-// Outputs: snake-dark.svg
+// Outputs: snake-dark.svg + contributions.json
 // Requires: GITHUB_TOKEN env variable (automatically available in GitHub Actions)
 
 const https = require('https');
@@ -50,13 +50,10 @@ function fetchContributions(user) {
     throw new Error('GITHUB_TOKEN env variable is required.');
   }
 
-  // ── FIX: pass explicit "from" so we get the last 52 weeks ──────
-  // Without from/to, contributionsCollection defaults to Jan 1 → today
-  // which gives partial year data and mismatches GitHub's profile graph.
   const now  = new Date();
   const from = new Date(now);
   from.setFullYear(from.getFullYear() - 1);
-  const fromISO = from.toISOString().split('T')[0];   // "YYYY-MM-DD"
+  const fromISO = from.toISOString().split('T')[0];
   const toISO   = now.toISOString().split('T')[0];
   console.log(`📅 Fetching contributions from ${fromISO} to ${toISO}`);
 
@@ -98,35 +95,20 @@ function fetchContributions(user) {
       res.on('end', () => {
         try {
           const json = JSON.parse(data);
-
-          // ── Null guards: surface any API error clearly ──────────
-          if (json.errors) {
-            reject(new Error(`GraphQL errors: ${JSON.stringify(json.errors)}`));
-            return;
-          }
-          if (!json.data) {
-            reject(new Error(`No data in response: ${JSON.stringify(json)}`));
-            return;
-          }
-          if (!json.data.user) {
-            reject(new Error(`User "${user}" not found on GitHub`));
-            return;
-          }
+          if (json.errors) { reject(new Error(`GraphQL errors: ${JSON.stringify(json.errors)}`)); return; }
+          if (!json.data)  { reject(new Error(`No data in response: ${JSON.stringify(json)}`)); return; }
+          if (!json.data.user) { reject(new Error(`User "${user}" not found on GitHub`)); return; }
 
           const cal = json.data.user.contributionsCollection.contributionCalendar;
-
-          if (!cal || !cal.weeks) {
-            reject(new Error(`contributionCalendar or weeks is missing in response: ${JSON.stringify(cal)}`));
-            return;
-          }
+          if (!cal || !cal.weeks) { reject(new Error(`weeks missing in response: ${JSON.stringify(cal)}`)); return; }
 
           console.log(`✅ Total contributions from GitHub: ${cal.totalContributions}`);
           console.log(`✅ Weeks returned: ${cal.weeks.length}`);
 
-          // Flatten weeks → { date, level, count } same shape as jogruber
+          // Flatten weeks → { date, level, count }
           const flat = [];
           cal.weeks.forEach(week => {
-            if (!week.contributionDays) return;   // skip malformed weeks
+            if (!week.contributionDays) return;
             week.contributionDays.forEach(day => {
               flat.push({
                 date:  day.date,
@@ -136,14 +118,9 @@ function fetchContributions(user) {
             });
           });
 
-          if (flat.length === 0) {
-            reject(new Error('No contribution days found in API response'));
-            return;
-          }
-
+          if (flat.length === 0) { reject(new Error('No contribution days found')); return; }
           console.log(`✅ Total days in flat array: ${flat.length}`);
           resolve(flat);
-
         } catch(e) { reject(e); }
       });
     });
@@ -154,14 +131,13 @@ function fetchContributions(user) {
 }
 
 // ── EXACT COPY of fillGridFromData from index.html ─────────────────
-// Do NOT change this logic — must stay in sync with index.html
 function buildGrid(contributions) {
   const grid = [];
   for (let c = 0; c < COLS; c++) { grid[c] = []; for (let r = 0; r < ROWS; r++) grid[c][r] = 0; }
 
   const total    = contributions.length;
   const slice    = contributions.slice(Math.max(0, total - COLS * ROWS));
-  const firstDow = new Date(slice[0].date).getDay();   // 0=Sun … 6=Sat
+  const firstDow = new Date(slice[0].date).getDay();
 
   slice.forEach((entry, idx) => {
     const col = Math.floor((idx + firstDow) / ROWS);
@@ -210,10 +186,15 @@ function buildPath() {
 
 async function main() {
   console.log(`Fetching contributions for ${username} via GitHub GraphQL API...`);
-  let grid;
+  let grid, contributions;
   try {
-    const contributions = await fetchContributions(username);
+    contributions = await fetchContributions(username);
     grid = buildGrid(contributions);
+
+    // ── Write contributions.json so index.html can read accurate data ──
+    fs.writeFileSync('contributions.json', JSON.stringify(contributions));
+    console.log(`✅ contributions.json written (${contributions.length} days)`);
+
     console.log('✅ Grid built — matches index.html layout exactly.');
   } catch(e) {
     console.error('❌ Failed to fetch contributions:', e.message);
