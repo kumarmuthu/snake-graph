@@ -134,7 +134,6 @@
     canvas.width  = COLS * STEP - GAP;
     canvas.height = ROWS * STEP - GAP;
 
-    // --- Edit snake colors here ------------------------------------
     const SNAKE_COLORS = {
         empty:      '#161b22',
         border:     '#21262d',
@@ -147,7 +146,6 @@
         eye:        '#0d1117',
         tongue:     '#ef233c',
     };
-    // ---------------------------------------------------------------------------
     const COLORS = {
         empty:  SNAKE_COLORS.empty,
         border: SNAKE_COLORS.border,
@@ -165,13 +163,10 @@
     let eatenSet = new Set();
     const SNAKE_LEN=5, FRAME_MS=120;
 
-    // --- Read username from URL param ?user=xxx ------------------------------------------------------
     function getUsernameFromURL() {
         const params = new URLSearchParams(window.location.search);
         return params.get('user') || params.get('username') || '';
     }
-
-    // --- Update URL param without page reload ---------------------------------------------------------
     function setURLParam(username) {
         const url = new URL(window.location.href);
         if (username) url.searchParams.set('user', username);
@@ -179,7 +174,6 @@
         window.history.replaceState({}, '', url);
     }
 
-    // --- Grid --------------------------------------------------------------------------------------------------------
     function emptyGrid() {
         grid = [];
         for (let c=0;c<COLS;c++){grid[c]=[];for(let r=0;r<ROWS;r++)grid[c][r]=0;}
@@ -189,26 +183,57 @@
         for(let c=0;c<COLS;c++)for(let r=0;r<ROWS;r++){const w=(r===0||r===6);grid[c][r]=w&&Math.random()<0.5?Math.max(0,rl()-1):rl();}
     }
 
-    // --- Fetch -------------------------------------------------------------------------------------------------------
+    // ── FIXED: fetch last 2 years from jogruber, merge, slice to last 365 days ──
+    // jogruber's ?y=last only returns current-year-to-date on some accounts,
+    // so we explicitly fetch prevYear + currYear, merge, then keep only last 365 days.
     async function fetchContributions(username) {
-        const res = await fetch(`https://github-contributions-api.jogruber.de/v4/${username}?y=last`);
-        if (!res.ok) throw new Error(`User "@${username}" not found`);
-        const data = await res.json();
-        return data.contributions;
+        const now      = new Date();
+        const currYear = now.getFullYear();
+        const prevYear = currYear - 1;
+
+        // Fetch both years in parallel
+        const [r1, r2] = await Promise.all([
+            fetch(`https://github-contributions-api.jogruber.de/v4/${username}?y=${prevYear}`),
+            fetch(`https://github-contributions-api.jogruber.de/v4/${username}?y=${currYear}`),
+        ]);
+
+        if (!r1.ok && !r2.ok) throw new Error(`User "@${username}" not found`);
+
+        const [d1, d2] = await Promise.all([
+            r1.ok ? r1.json() : Promise.resolve({ contributions: [] }),
+            r2.ok ? r2.json() : Promise.resolve({ contributions: [] }),
+        ]);
+
+        // Merge both years, sort by date ascending, deduplicate
+        const all = [...(d1.contributions || []), ...(d2.contributions || [])];
+        all.sort((a, b) => a.date < b.date ? -1 : 1);
+        const seen = new Set();
+        const deduped = all.filter(d => { if (seen.has(d.date)) return false; seen.add(d.date); return true; });
+
+        // Keep only contributions within the last 365 days (same window as GitHub profile)
+        const cutoff = new Date(now);
+        cutoff.setFullYear(cutoff.getFullYear() - 1);
+        const cutoffStr = cutoff.toISOString().split('T')[0];
+        const filtered = deduped.filter(d => d.date >= cutoffStr);
+
+        if (filtered.length === 0) throw new Error(`No contributions found for "@${username}"`);
+        return filtered;
     }
 
+    // ── Identical to generate-snake.js buildGrid ──────────────────
     function fillGridFromData(contributions) {
         emptyGrid();
-        const months = {};
-        const total  = contributions.length;
-        const slice  = contributions.slice(Math.max(0, total - COLS * ROWS));
+        const months   = {};
+        const total    = contributions.length;
+        const slice    = contributions.slice(Math.max(0, total - COLS * ROWS));
         const firstDow = new Date(slice[0].date).getDay();
+
         slice.forEach((entry, idx) => {
             const col = Math.floor((idx + firstDow) / ROWS);
             const row = (idx + firstDow) % ROWS;
             if (col < COLS && row < ROWS) {
                 grid[col][row] = entry.level;
-                const d = new Date(entry.date);
+                const d   = new Date(entry.date);
                 const key = `${d.getFullYear()}-${d.getMonth()}`;
                 if (!months[key]) months[key] = { col, month: d.getMonth(), year: d.getFullYear() };
             }
@@ -231,7 +256,6 @@
         document.getElementById('yearTag').textContent = years.join(' – ');
     }
 
-    // --- Path --------------------------------------------------------------------------------------------------------
     function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
     function buildPath() {
@@ -251,7 +275,6 @@
         return result;
     }
 
-    // --- Draw --------------------------------------------------------------------------------------------------------
     function cellColor(l){return[COLORS.empty,COLORS.l0,COLORS.l1,COLORS.l2,COLORS.l3][l]||COLORS.empty;}
     function drawCell(c,r,fill,stroke){
         const x=c*STEP,y=r*STEP;
@@ -290,7 +313,6 @@
         }
     }
 
-    // --- Animate -----------------------------------------------------------------------------------------------------
     function step(){
         if(done)return;
         if(headIdx<path.length){const[c,r]=path[headIdx];const k=`${c},${r}`;if(!eatenSet.has(k)&&grid[c][r]>0){eaten++;eatenSet.add(k);}headIdx++;}
@@ -318,7 +340,6 @@
         animId=requestAnimationFrame(loop);
     }
 
-    // --- Load user -------------------------------------------------------------------------------------------------
     async function loadUser() {
         const input    = document.getElementById('usernameInput');
         const username = input.value.trim();
@@ -328,10 +349,9 @@
         const status = document.getElementById('status');
         btn.disabled = true; btn.textContent = 'Loading...';
         status.className = 'status';
-        status.textContent = `Fetching @${username}'s contributions...`;
+        status.textContent = `Fetching @${username}'s contributions (last 365 days)...`;
         document.getElementById('userLabel').textContent = `${username} — contributions`;
 
-        // Update URL so this link is shareable
         setURLParam(username);
 
         if (animId) cancelAnimationFrame(animId);
@@ -341,8 +361,8 @@
             const contributions = await fetchContributions(username);
             const months = fillGridFromData(contributions);
             renderMonthLabels(months);
-            const total = contributions.reduce((s,d)=>s+d.count,0);
-            status.textContent = `✓ ${total.toLocaleString()} total contributions loaded`;
+            const total = contributions.reduce((s,d) => s + (d.count || 0), 0);
+            status.textContent = `✓ ${total.toLocaleString()} total contributions loaded (last 365 days)`;
             startAnim();
         } catch (err) {
             status.className = 'status err';
@@ -355,12 +375,10 @@
         btn.disabled = false; btn.textContent = 'Load';
     }
 
-    // --- Enter key ------------------------------------------------------------------------------------------------
     document.getElementById('usernameInput').addEventListener('keydown', e => {
         if (e.key === 'Enter') loadUser();
     });
 
-    // --- On page load: check URL param first, fallback to kumarmuthu ----------------------
     window.addEventListener('DOMContentLoaded', () => {
         const fromURL = getUsernameFromURL();
         const username = fromURL || 'kumarmuthu';
