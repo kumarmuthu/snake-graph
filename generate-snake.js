@@ -53,6 +53,7 @@ function fetchContributions(user) {
   const now  = new Date();
   const from = new Date(now);
   from.setFullYear(from.getFullYear() - 1);
+  from.setDate(from.getDate() - 1);            // ── 1 day buffer for IST timezone boundary
   const fromISO = from.toISOString().split('T')[0];
   const toISO   = now.toISOString().split('T')[0];
   console.log(`📅 Fetching contributions from ${fromISO} to ${toISO}`);
@@ -95,8 +96,8 @@ function fetchContributions(user) {
       res.on('end', () => {
         try {
           const json = JSON.parse(data);
-          if (json.errors) { reject(new Error(`GraphQL errors: ${JSON.stringify(json.errors)}`)); return; }
-          if (!json.data)  { reject(new Error(`No data in response: ${JSON.stringify(json)}`)); return; }
+          if (json.errors)     { reject(new Error(`GraphQL errors: ${JSON.stringify(json.errors)}`)); return; }
+          if (!json.data)      { reject(new Error(`No data in response: ${JSON.stringify(json)}`)); return; }
           if (!json.data.user) { reject(new Error(`User "${user}" not found on GitHub`)); return; }
 
           const cal = json.data.user.contributionsCollection.contributionCalendar;
@@ -191,7 +192,7 @@ async function main() {
     contributions = await fetchContributions(username);
     grid = buildGrid(contributions);
 
-    // ── Write contributions.json so index.html can read accurate data ──
+    // Write contributions.json so index.html reads accurate data (incl. private repos)
     fs.writeFileSync('contributions.json', JSON.stringify(contributions));
     console.log(`✅ contributions.json written (${contributions.length} days)`);
 
