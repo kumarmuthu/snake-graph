@@ -1055,7 +1055,9 @@
         <animate attributeName="fill" values="#0e4429;#21262d" keyTimes="0;0.7617" dur="46.320s" repeatCount="indefinite" calcMode="discrete"/>
       </rect>
 <rect x="832" y="48" width="13" height="13" rx="2" fill="#21262d"/>
-<rect x="833" y="49" width="11" height="11" rx="1.5" fill="#161b22"/>
+<rect x="833" y="49" width="11" height="11" rx="1.5" fill="#0e4429">
+        <animate attributeName="fill" values="#0e4429;#21262d" keyTimes="0;0.7642" dur="46.320s" repeatCount="indefinite" calcMode="discrete"/>
+      </rect>
 <rect x="832" y="64" width="13" height="13" rx="2" fill="#21262d"/>
 <rect x="833" y="65" width="11" height="11" rx="1.5" fill="#161b22"/>
 <rect x="832" y="80" width="13" height="13" rx="2" fill="#21262d"/>
